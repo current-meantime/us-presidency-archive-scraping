@@ -54,7 +54,7 @@ def scrape_year(year, output_dir):
     pages = math.ceil(total / 100)
     print(f"  - {total} wyników, {pages} stron")
 
-    for page in range(14, 15):
+    for page in range(pages):
         print(f"  - Strona {page + 1}/{pages}")
         params_base["page"] = page
         try:
