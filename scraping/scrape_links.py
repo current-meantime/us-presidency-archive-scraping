@@ -6,6 +6,10 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from parse_html import parse_speech
+import logging
+from logging_config import setup_logging
+
+setup_logging()
 
 def get_total_results(soup):
     header = soup.find("div", class_="view-header")
@@ -36,6 +40,7 @@ def save_jsonl(data, filepath):
 
 
 def scrape_year(year, output_dir):
+    logging.info(f"Scraping year {year}...")
     print(f"Rok {year}...")
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"{year}.jsonl")
@@ -55,12 +60,14 @@ def scrape_year(year, output_dir):
     print(f"  - {total} wyników, {pages} stron")
 
     for page in range(pages):
+        logging.info(f"  - Page {page + 1}/{pages}")
         print(f"  - Strona {page + 1}/{pages}")
         params_base["page"] = page
         try:
             response = requests.get(base_url, params=params_base)
             soup = BeautifulSoup(response.text, "html.parser")
             links = get_speech_links(soup)
+            logging.info(f"    > {len(links)} links found")
             print(f"    > {len(links)} linków")
 
             for link in links:
@@ -69,9 +76,11 @@ def scrape_year(year, output_dir):
                     save_jsonl(data, output_file)
                     time.sleep(0.5)  # by nie przeciążać serwera
                 except Exception as e:
+                    logging.error(f"    [!] Error in speech: {link} — {e}")
                     print(f"    [!] Błąd w przemowie: {link} — {e}")
 
         except Exception as e:
+            logging.error(f"  [!] Error on page {page}: {e}")
             print(f"  [!] Błąd strony {page}: {e}")
         time.sleep(1)
 

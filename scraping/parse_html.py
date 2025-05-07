@@ -1,10 +1,17 @@
 from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
+import logging
+from logging_config import setup_logging
+
+setup_logging()
 
 example_url = "https://www.presidency.ucsb.edu/documents/democratic-candidates-debate-durham-new-hampshire-0"
 
 def parse_speech(url):
+    logging.info(f"Parsing speech from link: {url}")
+    # the line below may be uncommented but the terminal can get cluttered as a result
+    # print(f"Parsing speech from link: {url}")
     base_url = "https://www.presidency.ucsb.edu"
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
