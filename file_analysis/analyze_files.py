@@ -2,6 +2,11 @@ import json
 import os
 import string
 from collections import Counter
+from nltk.corpus import stopwords
+
+# download stopwords
+import nltk
+nltk.download("stopwords")
 
 def save_json(data, name):
     output_dir = "file_analysis"
@@ -19,7 +24,7 @@ def normalize_text(text):
     translator = str.maketrans("", "", string.punctuation)
     return text.lower().translate(translator)
 
-def analyze_file(filename):
+def analyze_file(filename, hide_stopwords=False):
     filepath = os.path.join("output", filename)
     if not os.path.exists(filepath):
         print(f"File {filepath} does not exist.")
@@ -68,8 +73,17 @@ def analyze_file(filename):
         total_word_count += word_count
         total_char_count += char_count
 
+    # filter stopwords if the option is enabled
+    if hide_stopwords:
+        stop_words = set(stopwords.words("english"))
+        # get rid of single letters that maybe interpreted as words to count (e.g. "Q" for question in an interview)
+        custom_stop_words = set(string.ascii_lowercase)
+        stop_words.update(custom_stop_words)
+        filtered_word_counter = Counter({word: count for word, count in word_counter.items() if word not in stop_words})
+    else:
+        filtered_word_counter = word_counter
+
     # prepare summary
-    #TODO add option to hide stopwords ("the", "a", "of", etc.) in top_words
     stats = {
         "filename": filename,
         "total_entries": f"{total_entries:,}",  # Format with commas
@@ -77,13 +91,13 @@ def analyze_file(filename):
         "total_char_count": f"{total_char_count:,}",  # Format with commas
         "average_words_per_entry": f"{total_word_count / total_entries:,.2f}" if total_entries else "0.00",
         "average_chars_per_entry": f"{total_char_count / total_entries:,.2f}" if total_entries else "0.00",
-        "top_words": word_counter.most_common(100),
+        "top_words": filtered_word_counter.most_common(100),
         "entry_stats": entry_stats  # optionally omit for smaller file
     }
 
-    output_name = filename.replace(".jsonl", "").replace(".json", "") + "_analyzed"
+    output_name = filename.replace(".jsonl", "").replace(".json", "_json") + "_analyzed"
     save_json(stats, output_name)
 
 # przykład użycia:
-analyze_file("2000.jsonl")
+analyze_file("2000.jsonl", True)
 # analyze_file("2024.jsonl")
