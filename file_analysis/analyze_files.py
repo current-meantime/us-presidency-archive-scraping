@@ -1,7 +1,19 @@
 import json
 import os
 import string
+import re
 from collections import Counter
+from nltk.corpus import stopwords
+
+# download stopwords i tokenizer
+import nltk
+nltk.download("stopwords")
+nltk.download("punkt")
+
+from nltk.tokenize import TweetTokenizer
+
+# tokenizer, który radzi sobie ze skrótami, np. don't, he's itp.
+tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
 
 def save_json(data, name):
     output_dir = "file_analysis"
@@ -15,11 +27,11 @@ def save_json(data, name):
         print(f"Error saving JSON file {name}: {e}")
 
 def normalize_text(text):
-    # lowercase, remove punctuation
-    translator = str.maketrans("", "", string.punctuation)
-    return text.lower().translate(translator)
+    tokens = tokenizer.tokenize(text)
+    # usuń tokeny będące czysto interpunkcyjne (np. ",", ".", "!", itp.)
+    return [token for token in tokens if re.search(r"\w", token)]
 
-def analyze_file(filename):
+def analyze_file(filename, hide_stopwords=False):
     filepath = os.path.join("output", filename)
     if not os.path.exists(filepath):
         print(f"File {filepath} does not exist.")
@@ -54,7 +66,7 @@ def analyze_file(filename):
 
     for entry in entries:
         text = entry.get("text", "")
-        word_list = normalize_text(text).split()
+        word_list = normalize_text(text)
         word_count = len(word_list)
         char_count = len(text)
 
@@ -68,23 +80,31 @@ def analyze_file(filename):
         total_word_count += word_count
         total_char_count += char_count
 
+    # filter stopwords if the option is enabled
+    if hide_stopwords:
+        stop_words = set(stopwords.words("english"))
+        # get rid of single letters that maybe interpreted as words to count (e.g. "Q" for question in an interview)
+        custom_stop_words = set(string.ascii_lowercase)
+        stop_words.update(custom_stop_words)
+        filtered_word_counter = Counter({word: count for word, count in word_counter.items() if word not in stop_words})
+    else:
+        filtered_word_counter = word_counter
+
     # prepare summary
-    #TODO add number formatting for readability
-    #TODO add option to hide stopwords ("the", "a", "of", etc.) in top_words
     stats = {
         "filename": filename,
-        "total_entries": total_entries,
-        "total_word_count": total_word_count,
-        "total_char_count": total_char_count,
-        "average_words_per_entry": total_word_count / total_entries if total_entries else 0,
-        "average_chars_per_entry": total_char_count / total_entries if total_entries else 0,
-        "top_words": word_counter.most_common(100),
+        "total_entries": f"{total_entries:,}",
+        "total_word_count": f"{total_word_count:,}",
+        "total_char_count": f"{total_char_count:,}",
+        "average_words_per_entry": f"{total_word_count / total_entries:,.2f}" if total_entries else "0.00",
+        "average_chars_per_entry": f"{total_char_count / total_entries:,.2f}" if total_entries else "0.00",
+        "top_words": filtered_word_counter.most_common(100),
         "entry_stats": entry_stats  # optionally omit for smaller file
     }
 
-    output_name = filename.replace(".jsonl", "").replace(".json", "") + "_analyzed"
+    output_name = filename.replace(".jsonl", "").replace(".json", "_json") + "_analyzed"
     save_json(stats, output_name)
 
 # przykład użycia:
-analyze_file("2000.jsonl")
+analyze_file("2024.jsonl", True)
 # analyze_file("2024.jsonl")
