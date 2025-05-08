@@ -2,6 +2,11 @@ import json
 import os
 import string
 from collections import Counter
+from nltk.corpus import stopwords
+
+# download stopword
+import nltk
+nltk.download("stopwords")
 
 def save_json(data, name):
     output_dir = "file_analysis"
@@ -69,15 +74,14 @@ def analyze_file(filename):
         total_char_count += char_count
 
     # prepare summary
-    #TODO add number formatting for readability
     #TODO add option to hide stopwords ("the", "a", "of", etc.) in top_words
     stats = {
         "filename": filename,
-        "total_entries": total_entries,
-        "total_word_count": total_word_count,
-        "total_char_count": total_char_count,
-        "average_words_per_entry": total_word_count / total_entries if total_entries else 0,
-        "average_chars_per_entry": total_char_count / total_entries if total_entries else 0,
+        "total_entries": f"{total_entries:,}",  # Format with commas
+        "total_word_count": f"{total_word_count:,}",  # Format with commas
+        "total_char_count": f"{total_char_count:,}",  # Format with commas
+        "average_words_per_entry": f"{total_word_count / total_entries:,.2f}" if total_entries else "0.00",
+        "average_chars_per_entry": f"{total_char_count / total_entries:,.2f}" if total_entries else "0.00",
         "top_words": word_counter.most_common(100),
         "entry_stats": entry_stats  # optionally omit for smaller file
     }
